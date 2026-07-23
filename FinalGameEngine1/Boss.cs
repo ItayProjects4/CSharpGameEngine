@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
+﻿
+using System;
 
 namespace GameEngine
 {
     public class Boss : Enemy
     {
-        public Boss(string name, int x, int y, Weapon weapon, GameObjectManager manager, int level = 10) : base(name, x, y, 50, manager, weapon, level)
+        public Boss(string name, int x, int y, Weapon weapon, GameObjectManager manager, int level = 10)
+            : base(name, x, y, 50, manager, weapon, level)
         {
         }
 
@@ -22,8 +19,7 @@ namespace GameEngine
         {
             int damage = EquippedWeapon.Damage + 20;
             player.TakeDamage(damage);
-            Console.WriteLine($"{Name} used a special attack on {player.Name} for {damage} damage!");
+            Console.WriteLine(Name + " used a special attack on " + player.Name + " for " + damage + " damage!");
         }
     }
 }
-

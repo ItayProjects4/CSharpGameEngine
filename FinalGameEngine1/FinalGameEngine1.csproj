@@ -46,8 +46,6 @@
     <Compile Include="Boss.cs" />
     <Compile Include="Enemy.cs" />
     <Compile Include="Entity.cs" />
-    <Compile Include="EntityAlreadyExistsException.cs" />
-    <Compile Include="EntityDoesntExistException.cs" />
     <Compile Include="GameObjectManager.cs" />
     <Compile Include="IEntity.cs" />
     <Compile Include="Player.cs" />

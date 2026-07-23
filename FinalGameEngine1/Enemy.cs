@@ -1,25 +1,21 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Xml.Linq;
-
 
 namespace GameEngine
 {
     public class Enemy : Entity
     {
-        public int Health { get; private set; }
-        public int Damage { get; private set; }
-        public int Level { get; private set; } = 1;
-        public int XP { get; private set; } = 0;
-        public int XPToNextLevel { get; private set; } = 50;
-        public Weapon EquippedWeapon { get; private set; }
-        private GameObjectManager Manager { get; set; }
+        public int Health { get; set; }
+        public int Damage { get; set; }
+        public int Level { get; set; } = 1;
+        public int XP { get; set; } = 0;
+        public int XPToNextLevel { get; set; } = 50;
+        public Weapon EquippedWeapon { get; set; }
+        public GameObjectManager Manager { get; set; }
 
-        private static Random rand = new Random();
-
+        private Random rand = new Random();
         private int attackCooldown = 0;
-
         private int attackCooldownMax = 2;
 
         public Enemy(string name, int x, int y, int damage, GameObjectManager manager, Weapon equippedWeapon, int level = 1)
@@ -34,14 +30,32 @@ namespace GameEngine
 
         public override void Update()
         {
+            Player targetPlayer = FindClosestPlayer();
 
-            int dx = rand.Next(-1, 2);
-            int dy = rand.Next(-1, 2);
-            Move(dx, dy);
+            if (targetPlayer != null)
+            {
+                int dist = Math.Abs(targetPlayer.X - X) + Math.Abs(targetPlayer.Y - Y);
 
+                if (dist <= 4 && dist > EquippedWeapon.Range)
+                {
+                    int stepX = 0;
+                    int stepY = 0;
 
-            GainXP(1);
+                    if (targetPlayer.X > X) stepX = 1;
+                    else if (targetPlayer.X < X) stepX = -1;
 
+                    if (targetPlayer.Y > Y) stepY = 1;
+                    else if (targetPlayer.Y < Y) stepY = -1;
+
+                    Move(stepX, stepY);
+                }
+                else if (dist > 4)
+                {
+                    int dx = rand.Next(-1, 2);
+                    int dy = rand.Next(-1, 2);
+                    Move(dx, dy);
+                }
+            }
 
             if (attackCooldown == 0)
             {
@@ -49,9 +63,9 @@ namespace GameEngine
                 if (target != null)
                 {
                     target.TakeDamage(EquippedWeapon.Damage);
-                    Console.WriteLine($"Enemy {Name} attacked {target.Name} with {EquippedWeapon.Name} for {EquippedWeapon.Damage} damage");
+                    Manager.AddLog("Enemy " + Name + " attacked " + target.Name + " for " + EquippedWeapon.Damage + " damage");
+                    attackCooldown = attackCooldownMax;
                 }
-                attackCooldown = attackCooldownMax;
             }
             else
             {
@@ -61,17 +75,20 @@ namespace GameEngine
 
         public override void Draw()
         {
-            Console.WriteLine($"Enemy {Name} (Level {Level}) at ({X},{Y}) with HP {Health}, Damage {Damage}, Weapon: {EquippedWeapon.Name}");
+            Console.WriteLine($"Enemy {Name}: Lvl {Level} at ({X},{Y}). HP: {Health}. Wpn: {EquippedWeapon.Name}");
         }
 
         public void TakeDamage(int damage)
         {
-            if (damage <= 0)
-                throw new Exception("Damage cannot be negative or zero");
+            if (rand.Next(1, 101) <= 15)
+            {
+                Manager.AddLog(Name + " dodged the attack");
+                return;
+            }
 
             Health -= damage;
             if (Health < 0) Health = 0;
-            if (Health > 0) Console.WriteLine($"{Name} has {Health} HP left");
+            Manager.AddLog(Name + " took " + damage + " damage. HP: " + Health);
         }
 
         private void Move(int deltaX, int deltaY)
@@ -85,34 +102,18 @@ namespace GameEngine
             if (Y > 10) Y = 10;
         }
 
-        private List<Player> FindPlayersNear(int range)
-        {
-            List<Player> result = new List<Player>();
-            foreach (var entity in Manager.entities)
-            {
-                if (entity is Player p)
-                {
-                    int dx = Math.Abs(p.X - X);
-                    int dy = Math.Abs(p.Y - Y);
-                    if (dx <= range && dy <= range)
-                    {
-                        result.Add(p);
-                    }
-                }
-            }
-            return result;
-        }
-
-        private Player FindClosestPlayerInRange(int range)
+        private Player FindClosestPlayer()
         {
             Player closest = null;
-            int minDist = int.MaxValue;
-            foreach (var entity in Manager.entities)
+            int minDist = 9999;
+
+            for (int i = 0; i < Manager.entities.Count; i++)
             {
-                if (entity is Player p)
+                if (Manager.entities[i] is Player)
                 {
+                    Player p = (Player)Manager.entities[i];
                     int dist = Math.Abs(p.X - X) + Math.Abs(p.Y - Y);
-                    if (dist <= range && dist < minDist)
+                    if (dist < minDist)
                     {
                         minDist = dist;
                         closest = p;
@@ -122,23 +123,25 @@ namespace GameEngine
             return closest;
         }
 
-        private void GainXP(int amount)
+        private Player FindClosestPlayerInRange(int range)
         {
-            XP += amount;
-            while (XP >= XPToNextLevel)
-            {
-                LevelUp();
-            }
-        }
+            Player closest = null;
+            int minDist = 9999;
 
-        private void LevelUp()
-        {
-            XP -= XPToNextLevel;
-            Level++;
-            XPToNextLevel = (int)(XPToNextLevel * 1.5);
-            Health = 100 * Level;
-            Damage += 5;
-            Console.WriteLine($"{Name} leveled up! Now Level {Level}, HP {Health}, Damage {Damage}");
+            for (int i = 0; i < Manager.entities.Count; i++)
+            {
+                if (Manager.entities[i] is Player)
+                {
+                    Player p = (Player)Manager.entities[i];
+                    int dist = Math.Abs(p.X - X) + Math.Abs(p.Y - Y);
+                    if (dist <= range && dist < minDist)
+                    {
+                        minDist = dist;
+                        closest = p;
+                    }
+                }
+            }
+            return closest;
         }
     }
 }

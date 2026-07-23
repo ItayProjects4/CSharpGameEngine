@@ -1,30 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Policy;
-using System.Security.Principal;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Serialization;
 
 namespace GameEngine
 {
     public abstract class Entity : IEntity
     {
-        public string Name { get; private set; }
-        public int Y { get; protected set; }
-        public int X { get; protected set; }
+        public string Name { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
 
-        public Entity(string name, int y, int x)
+        public Entity(string name, int x, int y)
         {
             Name = name;
-            Y = y;
             X = x;
+            Y = y;
         }
+
         public abstract void Update();
         public abstract void Draw();
-
-
-
     }
 }

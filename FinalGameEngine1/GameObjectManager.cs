@@ -1,24 +1,63 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GameEngine
 {
     public class GameObjectManager
     {
-
         public List<Entity> entities = new List<Entity>();
+        public List<string> TurnLogs = new List<string>();
+        private Random rand = new Random();
+
+        public void AddLog(string message)
+        {
+            TurnLogs.Add(message);
+        }
+
+        public void SpawnEnemiesIfNeeded(int minEnemies = 2)
+        {
+            int currentEnemyCount = 0;
+            Player player = null;
+
+            for (int i = 0; i < entities.Count; i++)
+            {
+                if (entities[i] is Enemy) currentEnemyCount++;
+                if (entities[i] is Player) player = (Player)entities[i];
+            }
+
+            while (currentEnemyCount < minEnemies)
+            {
+                int spawnX = rand.Next(0, 11);
+                int spawnY = rand.Next(0, 11);
+
+                if (player != null && Math.Abs(spawnX - player.X) <= 1 && Math.Abs(spawnY - player.Y) <= 1)
+                {
+                    continue;
+                }
+
+                string[] names = new string[] { "Goblin", "Orc", "Skeleton", "Bandit" };
+                string enemyName = names[rand.Next(names.Length)];
+
+                Weapon enemyWeapon = new Weapon("Rusty Blade", 6, 1);
+                int level = (player != null) ? player.Level : 1;
+
+                Enemy newEnemy = new Enemy(enemyName, spawnX, spawnY, 5, this, enemyWeapon, level);
+                AddEntity(newEnemy);
+
+                AddLog("A level " + level + " " + enemyName + " has spawned at (" + spawnX + "," + spawnY + ")!");
+                currentEnemyCount++;
+            }
+        }
 
         public void AddEntity(Entity entity)
         {
             bool exists = false;
-            foreach (var e in entities)
+            for (int i = 0; i < entities.Count; i++)
             {
-                if (e.Name == entity.Name)
+                if (entities[i].Name == entity.Name)
                 {
                     exists = true;
+                    break;
                 }
             }
 
@@ -28,28 +67,27 @@ namespace GameEngine
             }
             else
             {
-                throw new EntityAlreadyExistsException("Entity " + entity.Name + " already exists!");
+                Console.WriteLine("Warning: Entity " + entity.Name + " already exists!");
             }
         }
 
         public void RemoveEntity(Entity entity)
         {
-            if (!entities.Contains(entity))
+            if (entities.Contains(entity))
             {
                 entities.Remove(entity);
             }
             else
             {
-                throw new EntityDoesntExistException("entity " + entity.Name + " does not exist");
+                Console.WriteLine("Warning: Entity " + entity.Name + " does not exist!");
             }
-
         }
+
         public void UpdateAll()
         {
-            List<Entity> copy = new List<Entity>(entities);
-
-            foreach (var entity in copy)
+            for (int i = entities.Count - 1; i >= 0; i--)
             {
+                Entity entity = entities[i];
                 entity.Update();
 
                 if (entity is Player)
@@ -57,7 +95,7 @@ namespace GameEngine
                     Player p = (Player)entity;
                     if (p.Health <= 0)
                     {
-                        Console.WriteLine("Player " + p.Name + " died!");
+                        AddLog("Player " + p.Name + " died");
                         RemoveEntity(p);
                     }
                 }
@@ -66,44 +104,60 @@ namespace GameEngine
                     Enemy e = (Enemy)entity;
                     if (e.Health <= 0)
                     {
-                        Console.WriteLine("Enemy " + e.Name + " defeated!");
+                        AddLog("Enemy " + e.Name + " defeated");
                         RemoveEntity(e);
                     }
                 }
             }
         }
+
         public void DrawAll()
         {
-            foreach (var entity in entities)
+            Console.WriteLine();
+            for (int y = 0; y <= 10; y++)
             {
-                entity.Draw();
-            }
-        }
-        public Entity GetEntityByName(string name)
-        {
-            foreach (var e in entities)
-            {
-                if (e.Name == name)
+                for (int x = 0; x <= 10; x++)
                 {
-                    return e;
+                    string symbol = ". ";
+                    for (int i = 0; i < entities.Count; i++)
+                    {
+                        if (entities[i].X == x && entities[i].Y == y)
+                        {
+                            if (entities[i] is Player) symbol = "P ";
+                            else if (entities[i] is Enemy) symbol = "E ";
+                        }
+                    }
+                    Console.Write(symbol);
+                }
+                Console.WriteLine();
+            }
+
+            for (int i = 0; i < entities.Count; i++)
+            {
+                entities[i].Draw();
+            }
+
+            if (TurnLogs.Count > 0)
+            {
+                Console.WriteLine("\nTURN EVENTS");
+                for (int i = 0; i < TurnLogs.Count; i++)
+                {
+                    Console.WriteLine("> " + TurnLogs[i]);
                 }
             }
-            return null;
         }
 
         public List<Enemy> FindEnemiesNear(int x, int y, int range)
         {
             List<Enemy> result = new List<Enemy>();
 
-            foreach (var entity in entities)
+            for (int i = 0; i < entities.Count; i++)
             {
-                if (entity is Enemy)
+                if (entities[i] is Enemy)
                 {
-                    Enemy e = (Enemy)entity;
-                    int dx = e.X - x;
-                    int dy = e.Y - y;
-                    if (dx < 0) dx = -dx;
-                    if (dy < 0) dy = -dy;
+                    Enemy e = (Enemy)entities[i];
+                    int dx = Math.Abs(e.X - x);
+                    int dy = Math.Abs(e.Y - y);
 
                     if (dx <= range && dy <= range)
                     {
